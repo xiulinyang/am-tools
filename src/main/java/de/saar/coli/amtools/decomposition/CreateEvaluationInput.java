@@ -16,6 +16,7 @@ import de.saar.coli.amtools.decomposition.automata.component_analysis.DAGCompone
 import de.saar.coli.amtools.decomposition.automata.source_assignment.SAAState;
 import de.saar.coli.amtools.decomposition.automata.source_assignment.SourceAssignmentAutomaton;
 import de.saar.coli.amtools.decomposition.formalisms.decomposition_packages.DecompositionPackage;
+import de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDecompositionDRT;
 import de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDecompositionToolset;
 import de.up.ling.irtg.InterpretedTreeAutomaton;
 import de.up.ling.irtg.algebra.ParserException;
@@ -47,15 +48,16 @@ import java.util.zip.ZipOutputStream;
 public class CreateEvaluationInput {
 
     @Parameter(names = {"--corpus", "-c"}, description = "Path to the input training corpus (*.sdp file)", required = true)
-    private String corpusPath;
+    private String corpusPath ="";
 
     @Parameter(names = {"--outputFilename", "-o"}, description = "Filename where amconll file are created", required = true)
-    private String outputFilename;
+    private String outputFilename ="";
+
 
 
     @Parameter(names = {"--decompositionToolset", "-dt"}, description = "Classname for the GraphbankDecompositionToolset to be used." +
-            "If the classpath is in de.saar.coli.amtools.decomposition.formalisms.toolsets, that prefix can be omitted.", required = true)
-    private String decompositionToolset;
+            "If the classpath is in de.saar.coli.amtools.decomposition.formalisms.toolsets, that prefix can be omitted.")
+    private String decompositionToolset = "GraphbankDecompositionDRT";
 
 
     @Parameter(names = {"--fasterModeForTesting", "-f"}, description = "skips computation of e.g. named entity tags if this flag is set; this can save a lot of time.")

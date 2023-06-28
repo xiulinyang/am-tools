@@ -75,10 +75,15 @@ public class DecompositionPackage {
 
     protected void setLexicalLabels(AmConllSentence amSent) {
         for (Alignment al : mrInstance.getAlignments()) {
-            if (!al.lexNodes.isEmpty()) {
-                String lexLabel = mrInstance.getGraph().getNode(al.lexNodes.iterator().next()).getLabel();
-                amSent.get(al.span.start).setLexLabel(lexLabel);  // both amSent.get and span.start are 0-based
+            try {
+                if (!al.lexNodes.isEmpty()) {
+                    String lexLabel = mrInstance.getGraph().getNode(al.lexNodes.iterator().next()).getLabel();
+                    amSent.get(al.span.start).setLexLabel(lexLabel);  // both amSent.get and span.start are 0-based
+                }
+            }catch (java.lang.NullPointerException ex){
+                System.out.println("Somehow the file is wrong!");
             }
+
         }
     }
 

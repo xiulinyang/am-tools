@@ -31,6 +31,7 @@ import de.up.ling.irtg.util.Counter;
 import de.up.ling.irtg.util.MutableInteger;
 import de.up.ling.irtg.util.ProgressListener;
 import de.up.ling.tree.Tree;
+import org.jetbrains.annotations.NotNull;
 import se.liu.ida.nlp.sdp.toolkit.graph.Graph;
 
 import java.io.*;
@@ -43,21 +44,27 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDecompositionDRT.getDirecotries;
+
 public class SourceAutomataCLI {
 
-    @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)")//, required = true)
-    private String trainingCorpusPath = "C:\\Users\\Jonas\\Documents\\Work\\experimentData\\unsupervised2020\\dm\\smallDev.sdp";
+    @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = true)
+    private String trainingCorpusPath = "";
 
-    @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)")//, required = true)
-    private String devCorpusPath = "C:\\Users\\Jonas\\Documents\\Work\\experimentData\\unsupervised2020\\dm\\minimalDev.sdp";
+    @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = true)
+    private String devCorpusPath = "";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
-    private String outPath = "C:\\Users\\Jonas\\Documents\\Work\\experimentData\\unsupervised2020\\dm\\small\\";
+    private String outPath = "";
 
 
+    @Parameter(names = {"--trainErrorAnalysis"}, description = "Path to the ill-formed graphs in the training split", required = true)
+    private static String trainErrorAnalysisFilePath = "";
+    @Parameter(names = {"--devErrorAnalysis"}, description = "Path to the ill-formed graphs in the training split", required = true)
+    private static String devErrorAnalysisFilePath = "";
     @Parameter(names = {"--decompositionToolset", "-dt"}, description = "Classname for the GraphbankDecompositionToolset to be used." +
             "If the classpath is in de.saar.coli.amtools.decomposition.formalisms.toolsets, that prefix can be omitted.")//, required = true)
-    private String decompositionToolset = "DMDecompositionToolset";
+    private String decompositionToolset =  "GraphbankDecompositionDRT";
 
 
     @Parameter(names = {"--fasterModeForTesting", "-f"}, description = "skips computation of e.g. named entity tags if this flag is set; this can save a lot of time.")
@@ -76,6 +83,7 @@ public class SourceAutomataCLI {
     @Parameter(names = {"--algorithm", "-a"}, description = "options: EM, random, arbitraryViterbi, automata")//, required = true)
     private String algorithm = "automata";
 
+
     @Parameter(names = {"--help", "-?","-h"}, description = "displays help if this is the only command", help = true)
     private boolean help=false;
 
@@ -85,6 +93,7 @@ public class SourceAutomataCLI {
         // cli stands for CommandLineInterface
         SourceAutomataCLI cli = new SourceAutomataCLI();
         JCommander commander = new JCommander(cli);
+
         try {
             commander.parse(args);
         } catch (com.beust.jcommander.ParameterException ex) {
@@ -112,20 +121,19 @@ public class SourceAutomataCLI {
         Constructor<?> ctor = clazz.getConstructor(Boolean.class);
         GraphbankDecompositionToolset decompositionToolset = (GraphbankDecompositionToolset)ctor.newInstance(new Object[] { cli.fasterModeForTesting});
 
-
-
         SupertagDictionary supertagDictionary = new SupertagDictionary();//future: load from file for dev set (better: get dev scores from training EM)
 
         //get automata for training set
         System.err.println("Creating automata for training set");
         List<MRInstance> corpusTrain = decompositionToolset.readCorpus(cli.trainingCorpusPath);
+        List<String> directoriesTrain = getDirecotries(cli.trainingCorpusPath);
         decompositionToolset.applyPreprocessing(corpusTrain);
 
         List<TreeAutomaton<?>> concreteDecompositionAutomata = new ArrayList<>();
         List<SourceAssignmentAutomaton> originalDecompositionAutomata = new ArrayList<>();
         List<DecompositionPackage> decompositionPackages = new ArrayList<>();
 
-        processCorpus(corpusTrain, decompositionToolset, cli.nrSources, concreteDecompositionAutomata, originalDecompositionAutomata, decompositionPackages);
+        processCorpus(corpusTrain, decompositionToolset, cli.nrSources, concreteDecompositionAutomata, originalDecompositionAutomata, decompositionPackages, directoriesTrain, cli.trainErrorAnalysisFilePath);
 
 
         //get automata for dev set
@@ -136,14 +144,16 @@ public class SourceAutomataCLI {
         List<TreeAutomaton<?>> concreteDecompositionAutomataDev = new ArrayList<>();
         List<SourceAssignmentAutomaton> originalDecompositionAutomataDev = new ArrayList<>();
         List<DecompositionPackage> decompositionPackagesDev = new ArrayList<>();
-
-        processCorpus(corpusDev, decompositionToolset, cli.nrSources, concreteDecompositionAutomataDev, originalDecompositionAutomataDev, decompositionPackagesDev);
+        List<String> directoriesDev = getDirecotries(cli.devCorpusPath);
+        processCorpus(corpusDev, decompositionToolset, cli.nrSources, concreteDecompositionAutomataDev, originalDecompositionAutomataDev, decompositionPackagesDev, directoriesDev, cli.devErrorAnalysisFilePath);
 
         Files.createDirectories(Paths.get(cli.outPath));
 
         if (cli.algorithm.equals("automata")) {
 
             createAutomataZip(originalDecompositionAutomata, decompositionPackages, supertagDictionary, "train", cli.outPath);
+            System.out.println("The length of the supertag files");
+            System.out.println(supertagDictionary.size());
             createAutomataZip(originalDecompositionAutomataDev, decompositionPackagesDev, supertagDictionary, "dev", cli.outPath);
 
         } else {
@@ -288,7 +298,7 @@ public class SourceAutomataCLI {
 
     private static void processCorpus(List<MRInstance> corpus, GraphbankDecompositionToolset decompositionToolset, int nrSources,
                                List<TreeAutomaton<?>> concreteDecompositionAutomata, List<SourceAssignmentAutomaton> originalDecompositionAutomata,
-                                List<DecompositionPackage> decompositionPackages) {
+                                List<DecompositionPackage> decompositionPackages, List<String> directories, String errorAnalysisFilePath) throws IOException {
 
         int[] buckets = new int[]{0, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000};
         Counter<Integer> bucketCounter = new Counter<>();
@@ -297,6 +307,7 @@ public class SourceAutomataCLI {
         int fails = 0;
         int nondecomposeable = 0;
         Graph sdpGraph;
+        BufferedWriter writer = new BufferedWriter(new FileWriter(errorAnalysisFilePath));
         for (MRInstance inst : corpus) {
             if (index % 500 == 0) {
                 System.err.println("Processing instance " + index);
@@ -305,6 +316,7 @@ public class SourceAutomataCLI {
             if (true) { //index == 1268
                 SGraph graph = inst.getGraph();
 
+                AMDependencyTree result = null;
                 try {
 
                     DecompositionPackage decompositionPackage = decompositionToolset.makeDecompositionPackage(inst);
@@ -313,7 +325,7 @@ public class SourceAutomataCLI {
 
                     ComponentAutomaton componentAutomaton = new ComponentAutomaton(graph, decompositionToolset.getEdgeHeuristic());
 
-                    AMDependencyTree result = converter.componentAnalysis2AMDep(componentAutomaton);
+                    result = converter.componentAnalysis2AMDep(componentAutomaton);
 
                     for (Set<String> nodesInConstant : decompositionPackage.getMultinodeConstantNodeNames()) {
                         result = MultinodeContractor.contractMultinodeConstant(result, nodesInConstant, decompositionPackage);
@@ -336,7 +348,7 @@ public class SourceAutomataCLI {
 //                            System.out.println(concreteTreeAutomaton.viterbi());
                             if (concreteTreeAutomaton.viterbi() != null) {
                                 successCounter.add("success");
-                                concreteTreeAutomaton = (ConcreteTreeAutomaton<SAAState>)concreteTreeAutomaton.reduceTopDown();
+                                concreteTreeAutomaton = (ConcreteTreeAutomaton<SAAState>) concreteTreeAutomaton.reduceTopDown();
                                 concreteDecompositionAutomata.add(concreteTreeAutomaton);
                                 decompositionPackages.add(decompositionPackage);
                                 originalDecompositionAutomata.add(auto);
@@ -346,39 +358,61 @@ public class SourceAutomataCLI {
 //                                    System.err.println();
 //                                }
                             } else {
+                                System.out.println("fail (unable to reconstruct graph -- probably non-decomposeable)");
+                                System.out.println(directories.get(index));
+                                String failedResult = "fail (unable to reconstruct graph -- probably non-decomposeable):"+directories.get(index)+"\n";
+                                writer.write(failedResult);
+                                System.out.println(concreteTreeAutomaton.viterbi());
                                 successCounter.add("fail (unable to reconstruct graph -- probably non-decomposeable)");
                             }
 //                            System.out.println(concreteTreeAutomaton.reduceTopDown().getNumberOfRules());
-                            int automatonSize = (int)concreteTreeAutomaton.reduceTopDown().getNumberOfRules();
+                            int automatonSize = (int) concreteTreeAutomaton.reduceTopDown().getNumberOfRules();
                             OptionalInt bucket = Arrays.stream(buckets).filter(bucketSize -> automatonSize > bucketSize).max();
                             if (bucket.isPresent()) {
                                 bucketCounter.add(bucket.getAsInt());
                             }
 //                            System.out.println();
                         } else {
-                            System.err.println(index);
+                            System.out.println("fail (reconstruct graph does not match original. Bug in decomposition code?)");
+                            System.out.println(directories.get(index));
+                            String failedResult = "fail (reconstruct graph does not match original. Bug in decomposition code?)"+directories.get(index)+"\n";
+                            writer.write(failedResult);
                             System.err.println(graph.toIsiAmrStringWithSources());
                             System.err.println(resultGraph.toIsiAmrStringWithSources());
                             successCounter.add("fail (reconstruct graph does not match original. Bug in decomposition code?)");
                             fails++;
                         }
                     } catch (Exception ex) {
-                        System.err.println(index);
-//                        System.err.println(graph.toIsiAmrStringWithSources());
-//                        System.err.println(result);
+                        System.out.println("fail (error when reconstructing graph -- non-decomposeable, or bug?)");
+                        System.out.println(directories.get(index));
+                        String failedResult = "fail (error when reconstructing graph -- non-decomposeable, or bug?)"+directories.get(index)+"\n";
+                        writer.write(failedResult);
                         ex.printStackTrace();
                         successCounter.add("fail (error when reconstructing graph -- non-decomposeable, or bug?)");
                         fails++;
                     }
                 } catch (DAGComponent.NoEdgeToRequiredModifieeException ex) {
+                    System.out.println("successCounter.add(\"fail (nondecomposeable: missing modifier edge / impossible diamond structure)\");");
+                    System.out.println(directories.get(index));
+                    String failedResult = "successCounter.add(\"fail (nondecomposeable: missing modifier edge / impossible diamond structure)\");"+directories.get(index)+"\n";
+                    writer.write(failedResult);
+                    ex.printStackTrace();
                     successCounter.add("fail (nondecomposeable: missing modifier edge / impossible diamond structure)");
                     nondecomposeable++;
                 } catch (DAGComponent.CyclicGraphException ex) {
+                    System.out.println("cyclic graph");
+                    System.out.println(directories.get(index));
+                    String failedResult = "cyclic graph"+directories.get(index)+"\n";
+                    writer.write(failedResult);
+
+                    ex.printStackTrace();
                     successCounter.add("fail (nondecomposeable: cyclic graph)");
                     nondecomposeable++;
                 } catch (Exception | Error ex) {
-                    System.err.println(index);
-//                    System.err.println(graph.toIsiAmrStringWithSources());
+                    System.out.println("fail (error during automaton construction)");
+                    System.out.println(directories.get(index));
+                    String failedResult = "fail (error during automaton construction)"+directories.get(index)+"\n";
+                    writer.write(failedResult);
                     ex.printStackTrace();
                     successCounter.add("fail (error during automaton construction)");
                     fails++;
@@ -387,6 +421,8 @@ public class SourceAutomataCLI {
 
             index++;
         }
+        writer.flush();  // Flush the writer to ensure all data is written to the file
+        writer.close();
         bucketCounter.printAllSorted();
         successCounter.printAllSorted();
     }
