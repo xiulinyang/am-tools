@@ -49,19 +49,19 @@ import static de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDe
 public class SourceAutomataCLI {
 
     @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = true)
-    private String trainingCorpusPath = "";
+    private String trainingCorpusPath = "data/en_train.txt";
 
     @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = true)
-    private String devCorpusPath = "";
+    private String devCorpusPath = "data/en_dev.txt";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
-    private String outPath = "";
+    private String outPath = "data/output/";
 
 
-    @Parameter(names = {"--trainErrorAnalysis"}, description = "Path to the ill-formed graphs in the training split", required = true)
-    private static String trainErrorAnalysisFilePath = "";
-    @Parameter(names = {"--devErrorAnalysis"}, description = "Path to the ill-formed graphs in the training split", required = true)
-    private static String devErrorAnalysisFilePath = "";
+    @Parameter(names = {"--trainErrorAnalysis"}, description = "Path to the file that records ill-formed graphs in the training split", required = true)
+    private static String trainErrorAnalysisFilePath = "data/output/error_train.txt";
+    @Parameter(names = {"--devErrorAnalysis"}, description = "Path to the file that records ill-formed graphs in the training split", required = true)
+    private static String devErrorAnalysisFilePath ="data/output/error_dev.txt";
     @Parameter(names = {"--decompositionToolset", "-dt"}, description = "Classname for the GraphbankDecompositionToolset to be used." +
             "If the classpath is in de.saar.coli.amtools.decomposition.formalisms.toolsets, that prefix can be omitted.")//, required = true)
     private String decompositionToolset =  "GraphbankDecompositionDRT";
