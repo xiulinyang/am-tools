@@ -5,11 +5,9 @@ import com.beust.jcommander.Parameter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import de.saar.basic.Pair;
-import de.saar.coli.amrtagging.AmConllEntry;
-import de.saar.coli.amrtagging.AmConllSentence;
-import de.saar.coli.amrtagging.MRInstance;
-import de.saar.coli.amrtagging.SupertagDictionary;
+import de.saar.coli.amrtagging.*;
 import de.saar.coli.amtools.decomposition.analysis.SupertagEntropy;
+import de.saar.coli.amtools.decomposition.analysis.VulcanJSONWriter;
 import de.saar.coli.amtools.decomposition.automata.component_analysis.ComponentAnalysisToAMDep;
 import de.saar.coli.amtools.decomposition.automata.component_analysis.ComponentAutomaton;
 import de.saar.coli.amtools.decomposition.automata.component_analysis.DAGComponent;
@@ -48,19 +46,19 @@ import static de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDe
 
 public class SourceAutomataCLI {
 
-    @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = true)
+    @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = false)
     private String trainingCorpusPath = "data/en_train.txt";
 
-    @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = true)
+    @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = false)
     private String devCorpusPath = "data/en_dev.txt";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
     private String outPath = "data/output/";
 
 
-    @Parameter(names = {"--trainErrorAnalysis"}, description = "Path to the file that records ill-formed graphs in the training split", required = true)
+    @Parameter(names = {"--trainErrorAnalysis"}, description = "Path to the file that records ill-formed graphs in the training split", required = false)
     private static String trainErrorAnalysisFilePath = "data/output/error_train.txt";
-    @Parameter(names = {"--devErrorAnalysis"}, description = "Path to the file that records ill-formed graphs in the training split", required = true)
+    @Parameter(names = {"--devErrorAnalysis"}, description = "Path to the file that records ill-formed graphs in the training split", required = false)
     private static String devErrorAnalysisFilePath ="data/output/error_dev.txt";
     @Parameter(names = {"--decompositionToolset", "-dt"}, description = "Classname for the GraphbankDecompositionToolset to be used." +
             "If the classpath is in de.saar.coli.amtools.decomposition.formalisms.toolsets, that prefix can be omitted.")//, required = true)
@@ -303,6 +301,17 @@ public class SourceAutomataCLI {
         int[] buckets = new int[]{0, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000};
         Counter<Integer> bucketCounter = new Counter<>();
         Counter<String> successCounter = new Counter<>();
+        Map<String, String> vulcanFormatMapPreDecomposition = new HashMap<>();
+        vulcanFormatMapPreDecomposition.put("Sentence", "string");
+        vulcanFormatMapPreDecomposition.put("Gold graph", "graph_string");
+        vulcanFormatMapPreDecomposition.put("Alignments", "string");
+//        Map<String, String> vulcanFormatMapPostDecomposition = new HashMap<>();
+//        vulcanFormatMapPostDecomposition.put("Sentence", "string");
+//        vulcanFormatMapPostDecomposition.put("Gold graph", "graph_string");
+//        vulcanFormatMapPostDecomposition.put("Alignments", "string");
+//        vulcanFormatMapPostDecomposition.put("AM tree", "amtree_string");
+        VulcanJSONWriter unableToReconstructVulcanWriter = new VulcanJSONWriter(vulcanFormatMapPreDecomposition);
+        VulcanJSONWriter illegalMODMoveVulcanWriter = new VulcanJSONWriter(vulcanFormatMapPreDecomposition);
         int index = 0;
         int fails = 0;
         int nondecomposeable = 0;
@@ -328,8 +337,9 @@ public class SourceAutomataCLI {
                     result = converter.componentAnalysis2AMDep(componentAutomaton);
 
                     for (Set<String> nodesInConstant : decompositionPackage.getMultinodeConstantNodeNames()) {
-                        result = MultinodeContractor.contractMultinodeConstant(result, nodesInConstant, decompositionPackage);
+                            result = MultinodeContractor.contractMultinodeConstant(result, nodesInConstant, decompositionPackage);
                     }
+
 
 
                     try {
@@ -389,6 +399,9 @@ public class SourceAutomataCLI {
                         writer.write(failedResult);
                         ex.printStackTrace();
                         successCounter.add("fail (error when reconstructing graph -- non-decomposeable, or bug?)");
+                        unableToReconstructVulcanWriter.addInstance("Sentence", String.join(" ", inst.getSentence()));
+                        unableToReconstructVulcanWriter.addInstance("Gold graph", inst.getGraph().toIsiAmrString());
+                        unableToReconstructVulcanWriter.addInstance("Alignments", inst.getAlignments().stream().map(Alignment::toString).collect(Collectors.joining(" ")));
                         fails++;
                     }
                 } catch (DAGComponent.NoEdgeToRequiredModifieeException ex) {
@@ -402,11 +415,42 @@ public class SourceAutomataCLI {
                 } catch (DAGComponent.CyclicGraphException ex) {
                     System.out.println("cyclic graph");
                     System.out.println(directories.get(index));
-                    String failedResult = "cyclic graph"+directories.get(index)+"\n";
+                    String failedResult = "cyclic graph" + directories.get(index) + "\n";
                     writer.write(failedResult);
 
                     ex.printStackTrace();
                     successCounter.add("fail (nondecomposeable: cyclic graph)");
+                    nondecomposeable++;
+                } catch (MultinodeContractor.IllegalModifierMoveException ex) {
+                    System.out.println("illegal MOD move ('multiple roots' problem)");
+                    System.out.println(directories.get(index));
+                    String failedResult = "illegal MOD move ('multiple roots' problem)" + directories.get(index) + "\n";
+                    writer.write(failedResult);
+                    illegalMODMoveVulcanWriter.addInstance("Sentence", String.join(" ", inst.getSentence()));
+                    illegalMODMoveVulcanWriter.addInstance("Gold graph", inst.getGraph().toIsiAmrString());
+                    illegalMODMoveVulcanWriter.addInstance("Alignments", inst.getAlignments().stream().map(Alignment::toString).collect(Collectors.joining(" ")));
+
+                    ex.printStackTrace();
+                    successCounter.add("fail (illegal MOD move / 'multiple roots' problem)");
+                    nondecomposeable++;
+
+                } catch (MultinodeContractor.DisconnectedConstantException ex) {
+                    System.out.println("disconnected graph constant");
+                    System.out.println(directories.get(index));
+                    String failedResult = "disconnected graph constant" + directories.get(index) + "\n";
+                    writer.write(failedResult);
+
+                    ex.printStackTrace();
+                    successCounter.add("fail (disconnected graph constant)");
+                    nondecomposeable++;
+                } catch (MultinodeContractor.EvaluationException ex) {
+                    System.out.println("multinode contraction changed evaluation result");
+                    System.out.println(directories.get(index));
+                    String failedResult = "multinode contraction changed evaluation result" + directories.get(index) + "\n";
+                    writer.write(failedResult);
+
+                    ex.printStackTrace();
+                    successCounter.add("fail (multinode contraction changed evaluation result)");
                     nondecomposeable++;
                 } catch (Exception | Error ex) {
                     System.out.println("fail (error during automaton construction)");
@@ -421,6 +465,8 @@ public class SourceAutomataCLI {
 
             index++;
         }
+        illegalMODMoveVulcanWriter.writeJSON(errorAnalysisFilePath + ".illegalMODMove.json");
+        unableToReconstructVulcanWriter.writeJSON(errorAnalysisFilePath + ".unableToReconstruct.json");
         writer.flush();  // Flush the writer to ensure all data is written to the file
         writer.close();
         bucketCounter.printAllSorted();
