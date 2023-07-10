@@ -301,17 +301,15 @@ public class SourceAutomataCLI {
         int[] buckets = new int[]{0, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000};
         Counter<Integer> bucketCounter = new Counter<>();
         Counter<String> successCounter = new Counter<>();
-        Map<String, String> vulcanFormatMapPreDecomposition = new HashMap<>();
-        vulcanFormatMapPreDecomposition.put("Sentence", "string");
-        vulcanFormatMapPreDecomposition.put("Gold graph", "graph_string");
-        vulcanFormatMapPreDecomposition.put("Alignments", "string");
-//        Map<String, String> vulcanFormatMapPostDecomposition = new HashMap<>();
-//        vulcanFormatMapPostDecomposition.put("Sentence", "string");
-//        vulcanFormatMapPostDecomposition.put("Gold graph", "graph_string");
-//        vulcanFormatMapPostDecomposition.put("Alignments", "string");
-//        vulcanFormatMapPostDecomposition.put("AM tree", "amtree_string");
-        VulcanJSONWriter unableToReconstructVulcanWriter = new VulcanJSONWriter(vulcanFormatMapPreDecomposition);
-        VulcanJSONWriter illegalMODMoveVulcanWriter = new VulcanJSONWriter(vulcanFormatMapPreDecomposition);
+        VulcanJSONWriter errorDuringReconstructVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter illegalMODMoveVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter unableToBuildGraphVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter impossibleDiamondStructureVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter disconnectedGraphConstantVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter errorDuringAutomatonConstructionVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter cyclicGraphVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter reconstructionMismatchVulcanWriter = createErrorVulcanJSONWriter();
+        VulcanJSONWriter alignmentContractionMismatchVulcanWriter = createErrorVulcanJSONWriter();
         int index = 0;
         int fails = 0;
         int nondecomposeable = 0;
@@ -368,12 +366,13 @@ public class SourceAutomataCLI {
 //                                    System.err.println();
 //                                }
                             } else {
-                                System.out.println("fail (unable to reconstruct graph -- probably non-decomposeable)");
+                                addInstanceToVulcanWriter(unableToBuildGraphVulcanWriter, inst, result);
+                                System.out.println("fail (unable to build graph -- probably too few sources; increase -s parameter)");
                                 System.out.println(directories.get(index));
-                                String failedResult = "fail (unable to reconstruct graph -- probably non-decomposeable):"+directories.get(index)+"\n";
+                                String failedResult = "fail (unable to build graph -- probably too few sources; increase -s parameter):"+directories.get(index)+"\n";
                                 writer.write(failedResult);
                                 System.out.println(concreteTreeAutomaton.viterbi());
-                                successCounter.add("fail (unable to reconstruct graph -- probably non-decomposeable)");
+                                successCounter.add("fail (unable to build graph -- probably too few sources; increase -s parameter)");
                             }
 //                            System.out.println(concreteTreeAutomaton.reduceTopDown().getNumberOfRules());
                             int automatonSize = (int) concreteTreeAutomaton.reduceTopDown().getNumberOfRules();
@@ -383,6 +382,7 @@ public class SourceAutomataCLI {
                             }
 //                            System.out.println();
                         } else {
+                            addInstanceToVulcanWriter(reconstructionMismatchVulcanWriter, inst, result);
                             System.out.println("fail (reconstruct graph does not match original. Bug in decomposition code?)");
                             System.out.println(directories.get(index));
                             String failedResult = "fail (reconstruct graph does not match original. Bug in decomposition code?)"+directories.get(index)+"\n";
@@ -393,18 +393,17 @@ public class SourceAutomataCLI {
                             fails++;
                         }
                     } catch (Exception ex) {
+                        addInstanceToVulcanWriter(errorDuringReconstructVulcanWriter, inst, result);
                         System.out.println("fail (error when reconstructing graph -- non-decomposeable, or bug?)");
                         System.out.println(directories.get(index));
                         String failedResult = "fail (error when reconstructing graph -- non-decomposeable, or bug?)"+directories.get(index)+"\n";
                         writer.write(failedResult);
                         ex.printStackTrace();
                         successCounter.add("fail (error when reconstructing graph -- non-decomposeable, or bug?)");
-                        unableToReconstructVulcanWriter.addInstance("Sentence", String.join(" ", inst.getSentence()));
-                        unableToReconstructVulcanWriter.addInstance("Gold graph", inst.getGraph().toIsiAmrString());
-                        unableToReconstructVulcanWriter.addInstance("Alignments", inst.getAlignments().stream().map(Alignment::toString).collect(Collectors.joining(" ")));
                         fails++;
                     }
                 } catch (DAGComponent.NoEdgeToRequiredModifieeException ex) {
+                    addInstanceToVulcanWriter(impossibleDiamondStructureVulcanWriter, inst, result);
                     System.out.println("successCounter.add(\"fail (nondecomposeable: missing modifier edge / impossible diamond structure)\");");
                     System.out.println(directories.get(index));
                     String failedResult = "successCounter.add(\"fail (nondecomposeable: missing modifier edge / impossible diamond structure)\");"+directories.get(index)+"\n";
@@ -413,6 +412,7 @@ public class SourceAutomataCLI {
                     successCounter.add("fail (nondecomposeable: missing modifier edge / impossible diamond structure)");
                     nondecomposeable++;
                 } catch (DAGComponent.CyclicGraphException ex) {
+                    addInstanceToVulcanWriter(cyclicGraphVulcanWriter, inst, result);
                     System.out.println("cyclic graph");
                     System.out.println(directories.get(index));
                     String failedResult = "cyclic graph" + directories.get(index) + "\n";
@@ -422,19 +422,18 @@ public class SourceAutomataCLI {
                     successCounter.add("fail (nondecomposeable: cyclic graph)");
                     nondecomposeable++;
                 } catch (MultinodeContractor.IllegalModifierMoveException ex) {
+                    addInstanceToVulcanWriter(illegalMODMoveVulcanWriter, inst, result);
                     System.out.println("illegal MOD move ('multiple roots' problem)");
                     System.out.println(directories.get(index));
                     String failedResult = "illegal MOD move ('multiple roots' problem)" + directories.get(index) + "\n";
                     writer.write(failedResult);
-                    illegalMODMoveVulcanWriter.addInstance("Sentence", String.join(" ", inst.getSentence()));
-                    illegalMODMoveVulcanWriter.addInstance("Gold graph", inst.getGraph().toIsiAmrString());
-                    illegalMODMoveVulcanWriter.addInstance("Alignments", inst.getAlignments().stream().map(Alignment::toString).collect(Collectors.joining(" ")));
 
                     ex.printStackTrace();
                     successCounter.add("fail (illegal MOD move / 'multiple roots' problem)");
                     nondecomposeable++;
 
                 } catch (MultinodeContractor.DisconnectedConstantException ex) {
+                    addInstanceToVulcanWriter(disconnectedGraphConstantVulcanWriter, inst, result);
                     System.out.println("disconnected graph constant");
                     System.out.println(directories.get(index));
                     String failedResult = "disconnected graph constant" + directories.get(index) + "\n";
@@ -444,6 +443,7 @@ public class SourceAutomataCLI {
                     successCounter.add("fail (disconnected graph constant)");
                     nondecomposeable++;
                 } catch (MultinodeContractor.EvaluationException ex) {
+                    addInstanceToVulcanWriter(alignmentContractionMismatchVulcanWriter, inst, result);
                     System.out.println("multinode contraction changed evaluation result");
                     System.out.println(directories.get(index));
                     String failedResult = "multinode contraction changed evaluation result" + directories.get(index) + "\n";
@@ -453,6 +453,7 @@ public class SourceAutomataCLI {
                     successCounter.add("fail (multinode contraction changed evaluation result)");
                     nondecomposeable++;
                 } catch (Exception | Error ex) {
+                    addInstanceToVulcanWriter(errorDuringAutomatonConstructionVulcanWriter, inst, result);
                     System.out.println("fail (error during automaton construction)");
                     System.out.println(directories.get(index));
                     String failedResult = "fail (error during automaton construction)"+directories.get(index)+"\n";
@@ -466,11 +467,41 @@ public class SourceAutomataCLI {
             index++;
         }
         illegalMODMoveVulcanWriter.writeJSON(errorAnalysisFilePath + ".illegalMODMove.json");
-        unableToReconstructVulcanWriter.writeJSON(errorAnalysisFilePath + ".unableToReconstruct.json");
+        errorDuringReconstructVulcanWriter.writeJSON(errorAnalysisFilePath + ".errorDuringReconstruct.json");
+        impossibleDiamondStructureVulcanWriter.writeJSON(errorAnalysisFilePath + ".impossibleDiamondStructure.json");
+        cyclicGraphVulcanWriter.writeJSON(errorAnalysisFilePath + ".cyclicGraph.json");
+        disconnectedGraphConstantVulcanWriter.writeJSON(errorAnalysisFilePath + ".disconnectedGraphConstant.json");
+        alignmentContractionMismatchVulcanWriter.writeJSON(errorAnalysisFilePath + ".alignmentContractionMismatch.json");
+        errorDuringAutomatonConstructionVulcanWriter.writeJSON(errorAnalysisFilePath + ".errorDuringAutomatonConstruction.json");
+        unableToBuildGraphVulcanWriter.writeJSON(errorAnalysisFilePath + ".unableToBuildGraph.json");
+        reconstructionMismatchVulcanWriter.writeJSON(errorAnalysisFilePath + ".reconstructionMismatch.json");
         writer.flush();  // Flush the writer to ensure all data is written to the file
         writer.close();
         bucketCounter.printAllSorted();
         successCounter.printAllSorted();
+    }
+
+    private static void addInstanceToVulcanWriter(VulcanJSONWriter unableToReconstructVulcanWriter, MRInstance inst,
+                                                  AMDependencyTree amTree) {
+        unableToReconstructVulcanWriter.addInstance("Sentence", String.join(" ", inst.getSentence()));
+        unableToReconstructVulcanWriter.addInstance("Gold graph", inst.getGraph().toIsiAmrString());
+        unableToReconstructVulcanWriter.addInstance("Alignments", inst.getAlignments().stream()
+                .map(Alignment::toString).collect(Collectors.joining(" ")));
+        unableToReconstructVulcanWriter.addAMTree("AM tree", amTree);
+        unableToReconstructVulcanWriter.addAlignmentLinkers("Gold graph", "Alignments",
+                "Sentence", inst.getAlignments());
+    }
+
+    @NotNull
+    private static VulcanJSONWriter createErrorVulcanJSONWriter() {
+        Map<String, String> vulcanFormatMapPreDecomposition = new HashMap<>();
+        vulcanFormatMapPreDecomposition.put("Sentence", "string");
+        vulcanFormatMapPreDecomposition.put("Gold graph", "graph_string");
+        vulcanFormatMapPreDecomposition.put("Alignments", "string");
+        vulcanFormatMapPreDecomposition.put("AM tree", "amtree_string");
+        VulcanJSONWriter vulcanWriter = new VulcanJSONWriter(vulcanFormatMapPreDecomposition);
+        vulcanWriter.initializeAlignmentLinkers("Gold graph", "Alignments", "Sentence");
+        return vulcanWriter;
     }
 
 
