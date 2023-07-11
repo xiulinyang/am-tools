@@ -54,10 +54,10 @@ public class VulcanJSONWriter {
                 addAmConllEntriesRecursive(amTree, AmConllEntry.ROOT_SYM, amConllSentence, 0);
                 data.get(name).add(amConllSentence.toString());
             } catch (Exception e) {
-                System.err.println("Minor warning: mal-formed AM dependency tree encountered when writing Vulcan JSON, " +
-                        "writing dummy graph instead. " +
-                        "This is to some extent expected. Have a closer look if you are using Vulcan for analysis, " +
-                        "and you are finding too many dummy graphs.");
+//                System.err.println("Minor warning: mal-formed AM dependency tree encountered when writing Vulcan JSON, " +
+//                        "writing dummy graph instead. " +
+//                        "This is to some extent expected. Have a closer look if you are using Vulcan for analysis, " +
+//                        "and you are finding too many dummy graphs.");
                 AmConllSentence amConllSentence = makeDummyAmConllSentence();
                 data.get(name).add(amConllSentence.toString());
             }

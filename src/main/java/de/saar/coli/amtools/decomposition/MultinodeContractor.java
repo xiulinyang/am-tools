@@ -31,9 +31,9 @@ public class MultinodeContractor {
             result = buildContractedTree(amDep, attachInThisTree,
                     replaceThis, nodesInConstant, decompositionPackage, false);
         } catch (IllegalArgumentException ex) {
-            System.err.println("illegal MOD move in constant contraction");
-            System.err.println(nodesInConstant.toString());
-            System.err.println(amDep.toString());
+//            System.err.println("illegal MOD move in constant contraction");
+//            System.err.println(nodesInConstant.toString());
+//            System.err.println(amDep.toString());
 //            outcomeCounter.add("subfail illegal MOD move");
             throw new IllegalModifierMoveException(ex.getMessage());
         }
