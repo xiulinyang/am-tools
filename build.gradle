@@ -84,6 +84,10 @@ dependencies {
     implementation 'com.owlike:genson:1.5'
     implementation group: 'com.opencsv', name: 'opencsv', version: '5.1'
     implementation 'de.ruedigermoeller:fst:2.56' // faster serialization
+
+    // for JSON parsing
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.14.2'
+
 }
 
 //for debugging, works e.g. in NetBeans. You can change the main class and the arguments here --JG

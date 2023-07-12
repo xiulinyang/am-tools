@@ -16,7 +16,7 @@ public class MultinodeContractor {
 
 
     public static AMDependencyTree contractMultinodeConstant(AMDependencyTree amDep, Set<String> nodesInConstant,
-                                                             DecompositionPackage decompositionPackage) {
+                                                             DecompositionPackage decompositionPackage) throws IllegalModifierMoveException, DisconnectedConstantException, EvaluationException {
 
 
         if (amDep == null) {
@@ -31,11 +31,11 @@ public class MultinodeContractor {
             result = buildContractedTree(amDep, attachInThisTree,
                     replaceThis, nodesInConstant, decompositionPackage, false);
         } catch (IllegalArgumentException ex) {
-            System.err.println("illegal MOD move in constant contraction");
-            System.err.println(nodesInConstant.toString());
-            System.err.println(amDep.toString());
+//            System.err.println("illegal MOD move in constant contraction");
+//            System.err.println(nodesInConstant.toString());
+//            System.err.println(amDep.toString());
 //            outcomeCounter.add("subfail illegal MOD move");
-            throw ex;
+            throw new IllegalModifierMoveException(ex.getMessage());
         }
         AMDependencyTree toBeInserted = result.left;
         List<Pair<String, AMDependencyTree>> attachBelow = result.right;
@@ -44,12 +44,12 @@ public class MultinodeContractor {
 
         if (attachInThisTree.size() +virtuallyAttachAtTop > 1) {
 //            outcomeCounter.add("subfail disconnected alignment");
-            throw new IllegalArgumentException("Constant to be contracted is disconnected");
+            throw new DisconnectedConstantException("");
         } else {
             try {
                 toBeInserted.evaluate();
             } catch (Exception ex) {
-                throw new IllegalArgumentException("Constant to be contracted leads to illegal evaluation");
+                throw new EvaluationException("");
             }
             AMDependencyTree replacement = new AMDependencyTree(toBeInserted.evaluate(), attachBelow.toArray(new Pair[attachBelow.size()]));
             if (attachInThisTree.isEmpty()) {
@@ -156,5 +156,23 @@ public class MultinodeContractor {
         return ret;
     }
 
+
+    public static class IllegalModifierMoveException extends Exception {
+        public IllegalModifierMoveException(String message) {
+            super("Illegal modifier move during multinode-constant contraction ('multiple roots' problem). " + message);
+        }
+    }
+
+    public static class DisconnectedConstantException extends Exception {
+        public DisconnectedConstantException(String message) {
+            super("Disconnected constant during multinode-constant contraction. " + message);
+        }
+    }
+
+    public static class EvaluationException extends Exception {
+        public EvaluationException(String message) {
+            super("Multinode-constant contraction. Did not preserve evaluation. " + message);
+        }
+    }
 
 }
