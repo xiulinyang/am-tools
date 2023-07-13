@@ -47,10 +47,10 @@ import static de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDe
 public class SourceAutomataCLI {
 
     @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = false)
-    private String trainingCorpusPath = "data/en_train.txt";
+    private String trainingCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_train.txt";
 
     @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = false)
-    private String devCorpusPath = "data/en_dev.txt";
+    private String devCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_dev.txt";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
     private String outPath = "data/output/";
@@ -69,7 +69,7 @@ public class SourceAutomataCLI {
     private boolean fasterModeForTesting =false;
 
     @Parameter(names = {"--nrSources", "-s"}, description = "how many sources to use")//, required = true)
-    private int nrSources = 2;
+    private int nrSources = 3;
 
     @Parameter(names = {"--iterations"}, description = "max number of EM iterations")//, required = true)
     private int iterations = 100;
