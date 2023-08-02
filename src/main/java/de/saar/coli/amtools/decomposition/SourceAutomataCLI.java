@@ -50,7 +50,7 @@ public class SourceAutomataCLI {
     private String trainingCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_train.txt";
 
     @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = false)
-    private String devCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_dev.txt";
+    private String devCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_train.txt";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
     private String outPath = "data/output/";

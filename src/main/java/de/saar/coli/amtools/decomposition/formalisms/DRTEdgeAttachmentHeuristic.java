@@ -9,6 +9,7 @@ public class DRTEdgeAttachmentHeuristic extends EdgeAttachmentHeuristic{
         "Participant",
         "Creator",
             "Proposition",
+            "Stimulus",
                 "Beneficiary",
                 "Co-Agent",
                 "Co-Patient",
