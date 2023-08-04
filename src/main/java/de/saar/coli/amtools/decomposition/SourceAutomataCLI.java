@@ -301,6 +301,7 @@ public class SourceAutomataCLI {
         int[] buckets = new int[]{0, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000};
         Counter<Integer> bucketCounter = new Counter<>();
         Counter<String> successCounter = new Counter<>();
+        VulcanJSONWriter successWriter = createErrorVulcanJSONWriter();
         VulcanJSONWriter errorDuringReconstructVulcanWriter = createErrorVulcanJSONWriter();
         VulcanJSONWriter illegalMODMoveVulcanWriter = createErrorVulcanJSONWriter();
         VulcanJSONWriter unableToBuildGraphVulcanWriter = createErrorVulcanJSONWriter();
@@ -356,6 +357,7 @@ public class SourceAutomataCLI {
 //                            System.out.println(concreteTreeAutomaton.viterbi());
                             if (concreteTreeAutomaton.viterbi() != null) {
                                 successCounter.add("success");
+                                addInstanceToVulcanWriter(successWriter, inst, result);
                                 concreteTreeAutomaton = (ConcreteTreeAutomaton<SAAState>) concreteTreeAutomaton.reduceTopDown();
                                 concreteDecompositionAutomata.add(concreteTreeAutomaton);
                                 decompositionPackages.add(decompositionPackage);
