@@ -1,5 +1,6 @@
 package de.saar.coli.amtools.evaluation.toolsets;
 
+import com.google.api.client.repackaged.com.google.common.base.Joiner;
 import de.saar.coli.amrtagging.AmConllEntry;
 import de.saar.coli.amrtagging.AmConllSentence;
 import de.saar.coli.amrtagging.MRInstance;
@@ -8,8 +9,7 @@ import de.up.ling.irtg.algebra.graph.GraphNode;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static de.saar.coli.amrtagging.AlignedAMDependencyTree.ALIGNED_SGRAPH_SEP;
 
@@ -54,15 +54,36 @@ public class EvaluationToolset {
      * @return nothing
      */
     public void applyPostprocessing(MRInstance mrInstance, AmConllSentence origAMConllSentence) {
+
         for (GraphNode node : new HashSet<>(mrInstance.getGraph().getGraph().vertexSet())) {
-            String[] nodeLabelTriple = node.getLabel().split(ALIGNED_SGRAPH_SEP); // this is [sentence position, node name, node label]
+            String[] nodeLabelTriple = node.getLabel().split(ALIGNED_SGRAPH_SEP); // this is [sentence position, node name, node label
             if (nodeLabelTriple[2].contains(AmConllEntry.LEX_MARKER)) {
                 int i = Integer.parseInt(nodeLabelTriple[0]);// is 1-based
+
                 node.setLabel(origAMConllSentence.get(i-1).getReLexLabel()); // then we relabel the node with the lexical label for that position
             } else {
                 node.setLabel(nodeLabelTriple[2]); // then we have a secondary node that already has its label
             }
         }
+    }
+
+    public static Map<String, Object> getAlignment(MRInstance mrInstance, AmConllSentence origAMConllSentence){
+
+        Map<String, Object> alignment = new HashMap<>();
+        List<String> nodeAlignment = new ArrayList<>();
+        for (GraphNode node : new HashSet<>(mrInstance.getGraph().getGraph().vertexSet())) {
+            String[] nodeLabelTriple = node.getLabel().split(ALIGNED_SGRAPH_SEP); // this is [sentence position, node name, node label
+            if (nodeLabelTriple[2].contains(AmConllEntry.LEX_MARKER)) {
+                int i = Integer.parseInt(nodeLabelTriple[0]);// is 1-based
+                String label = origAMConllSentence.get(i-1).getReLexLabel();
+                nodeLabelTriple[2]=label;
+            }
+            String alignmentString = Joiner.on("@@").join(nodeLabelTriple);
+            nodeAlignment.add(alignmentString);
+        }
+        alignment.put("sentence", origAMConllSentence);
+        alignment.put("nodealignment", nodeAlignment);
+        return alignment;
     }
 
     public void compareToGold(List<MRInstance> predictedInstances, String goldFilePath) throws IOException {

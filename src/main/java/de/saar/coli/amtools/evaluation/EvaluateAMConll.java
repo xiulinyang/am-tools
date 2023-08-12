@@ -33,6 +33,9 @@ public class EvaluateAMConll {
     @Parameter(names = {"--outPath", "-o"}, description = "Path for output files", required = true)
     public String outPath = null;
 
+    @Parameter(names = {"--alignmentPath", "-a"}, description = "Path for output files of alignments")
+    public String alignmentPath = null;
+
     @Parameter(names = {"--gold", "-g"}, description = "Path to gold corpus. Usually expected to contain the same instances in the same order as " +
             "the --corpus file (unless the evaluation toolset says otherwise). Giving the gold corpus here is optional, and only works if the evaluation" +
             "toolset has the compareToGold function implemented. Alternatively, use an external evaluation tool after this program has run (such as" +
@@ -142,8 +145,10 @@ public class EvaluateAMConll {
                 SGraph evaluatedGraph = evaluateToAlignedGraph(inputSentence);
                 List<Alignment> alignments = AlignedAMDependencyTree.extractAlignments(evaluatedGraph);
                 mrInst = encodeAsMRInstance(inputSentence, evaluatedGraph, alignments);
-
+                Map<String, Object> alignment = evaluationToolset.getAlignment(mrInst, inputSentence);
+                System.out.println(alignment);
                 evaluationToolset.applyPostprocessing(mrInst, inputSentence);
+
             } catch (java.lang.Exception ex) {
                 System.err.println("Skipping the following exception for the following AMConllSentence during evaluation," +
                         " using Dummy graph as result instead");
