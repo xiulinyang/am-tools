@@ -11,7 +11,7 @@ import de.up.ling.irtg.algebra.graph.SGraph;
 import de.up.ling.irtg.codec.IsiAmrInputCodec;
 import de.up.ling.tree.ParseException;
 
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
@@ -34,7 +34,7 @@ public class EvaluateAMConll {
     public String outPath = null;
 
     @Parameter(names = {"--alignmentPath", "-a"}, description = "Path for output files of alignments")
-    public String alignmentPath = null;
+    public static String alignmentPath = null;
 
     @Parameter(names = {"--gold", "-g"}, description = "Path to gold corpus. Usually expected to contain the same instances in the same order as " +
             "the --corpus file (unless the evaluation toolset says otherwise). Giving the gold corpus here is optional, and only works if the evaluation" +
@@ -146,7 +146,19 @@ public class EvaluateAMConll {
                 List<Alignment> alignments = AlignedAMDependencyTree.extractAlignments(evaluatedGraph);
                 mrInst = encodeAsMRInstance(inputSentence, evaluatedGraph, alignments);
                 Map<String, Object> alignment = evaluationToolset.getAlignment(mrInst, inputSentence);
-                System.out.println(alignment);
+                if (alignmentPath!= null){
+                    File outputFile = new File(alignmentPath);
+                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+                        for (String key : alignment.keySet()) {
+                            Object value = alignment.get(key);
+                            writer.write(key + "=" + value);
+                            writer.newLine();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();}
+
+                }
+
                 evaluationToolset.applyPostprocessing(mrInst, inputSentence);
 
             } catch (java.lang.Exception ex) {
