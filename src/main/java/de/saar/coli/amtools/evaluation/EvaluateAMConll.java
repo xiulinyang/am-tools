@@ -136,6 +136,7 @@ public class EvaluateAMConll {
 
     public static List<MRInstance> evaluteAMCorpus(List<AmConllSentence> inputAMConllSentences, EvaluationToolset evaluationToolset) throws ParseException, ParserException, AlignedAMDependencyTree.ConllParserException {
         List<MRInstance> outputCorpus = new ArrayList<>();
+        StringBuilder alignmentContent = new StringBuilder();
 
         for (AmConllSentence inputSentence : inputAMConllSentences) {
             ensureCompatibilityWithOldPipeline(inputSentence); //TODO is this the right place for this? Or is it AMR specific?
@@ -146,19 +147,10 @@ public class EvaluateAMConll {
                 List<Alignment> alignments = AlignedAMDependencyTree.extractAlignments(evaluatedGraph);
                 mrInst = encodeAsMRInstance(inputSentence, evaluatedGraph, alignments);
                 Map<String, Object> alignment = evaluationToolset.getAlignment(mrInst, inputSentence);
-                if (alignmentPath!= null){
-                    File outputFile = new File(alignmentPath);
-                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-                        for (String key : alignment.keySet()) {
-                            Object value = alignment.get(key);
-                            writer.write(key + "=" + value);
-                            writer.newLine();
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();}
-
+                for (String key : alignment.keySet()) {
+                    Object value = alignment.get(key);
+                    alignmentContent.append(key).append("=").append(value).append(System.lineSeparator());
                 }
-
                 evaluationToolset.applyPostprocessing(mrInst, inputSentence);
 
             } catch (java.lang.Exception ex) {
@@ -170,7 +162,15 @@ public class EvaluateAMConll {
                 Alignment dummyAlignment = new Alignment("r", 0);
                 mrInst = encodeAsMRInstance(inputSentence, dummyGraph, Collections.singletonList(dummyAlignment));
             }
-
+            if (alignmentPath!= null){
+                File outputFile = new File(alignmentPath);
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+                    writer.write(alignmentContent.toString());
+                    writer.newLine();
+                    } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             outputCorpus.add(mrInst);
         }
 
