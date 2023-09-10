@@ -8,6 +8,7 @@ import de.saar.coli.amtools.decomposition.formalisms.EdgeAttachmentHeuristic;
 import de.up.ling.irtg.algebra.graph.GraphEdge;
 import de.up.ling.irtg.algebra.graph.GraphNode;
 import de.up.ling.irtg.algebra.graph.SGraph;
+import org.apache.commons.lang.ObjectUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -38,7 +39,7 @@ public class GraphbankDecompositionDRT extends GraphbankDecompositionToolset {
         List<String> parentDirectories = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
         List<String> combinedDirectories = new ArrayList<>();
         for (String parentDirectory : parentDirectories) {
-            String combinedDirectory = "pmb-4.0.0/data/en/"+ parentDirectory + "/" + stemDirectory;
+            String combinedDirectory = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/data/pmb-4.0.0/data/en/"+ parentDirectory + "/" + stemDirectory;
             combinedDirectories.add(combinedDirectory);
         }
 
@@ -84,7 +85,7 @@ public class GraphbankDecompositionDRT extends GraphbankDecompositionToolset {
 
 
 //
-                }
+                    }
                     else {
                         List<String> singleEdge = new ArrayList<>();
                         singleEdge.add(line[0]);
@@ -104,8 +105,17 @@ public class GraphbankDecompositionDRT extends GraphbankDecompositionToolset {
 
                 GraphNode currentNode = nodeMap.get(currentNodeID);
                 GraphNode targetNode = nodeMap.get(targetNodeID);
-                GraphEdge edge = g.addEdge(currentNode, targetNode, edgeLabel);
+                if (currentNode == null || targetNode == null) {
+                    System.out.println("Error: currentNode or targetNode is null.");
+                    // Handle this situation, e.g., log an error, throw an exception, or skip adding the edge.
+                } else {
+                    System.out.println("Adding edge: " + currentNode + " -> " + targetNode + " with label " + edgeLabel);
+                    GraphEdge edge = g.addEdge(currentNode, targetNode, edgeLabel);
+                }
             }
+
+//                GraphEdge edge = g.addEdge(currentNode, targetNode, edgeLabel);
+//            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

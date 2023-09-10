@@ -47,10 +47,10 @@ import static de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDe
 public class SourceAutomataCLI {
 
     @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = false)
-    private String trainingCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_train.txt";
+    private String trainingCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/data_split/scopeless5/en_train.txt";
 
     @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = false)
-    private String devCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/baseline_scopeless/en_train.txt";
+    private String devCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/data_split/scopeless5/en_dev.txt";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
     private String outPath = "data/output/";
@@ -295,8 +295,8 @@ public class SourceAutomataCLI {
     }
 
     private static void processCorpus(List<MRInstance> corpus, GraphbankDecompositionToolset decompositionToolset, int nrSources,
-                               List<TreeAutomaton<?>> concreteDecompositionAutomata, List<SourceAssignmentAutomaton> originalDecompositionAutomata,
-                                List<DecompositionPackage> decompositionPackages, List<String> directories, String errorAnalysisFilePath) throws IOException {
+                                      List<TreeAutomaton<?>> concreteDecompositionAutomata, List<SourceAssignmentAutomaton> originalDecompositionAutomata,
+                                      List<DecompositionPackage> decompositionPackages, List<String> directories, String errorAnalysisFilePath) throws IOException {
 
         int[] buckets = new int[]{0, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000};
         Counter<Integer> bucketCounter = new Counter<>();
@@ -336,7 +336,7 @@ public class SourceAutomataCLI {
                     result = converter.componentAnalysis2AMDep(componentAutomaton);
 
                     for (Set<String> nodesInConstant : decompositionPackage.getMultinodeConstantNodeNames()) {
-                            result = MultinodeContractor.contractMultinodeConstant(result, nodesInConstant, decompositionPackage);
+                        result = MultinodeContractor.contractMultinodeConstant(result, nodesInConstant, decompositionPackage);
                     }
 
 
@@ -509,8 +509,8 @@ public class SourceAutomataCLI {
 
 
     static void createAutomataZip(List<SourceAssignmentAutomaton> originalDecompositionAutomata,
-                                   List<DecompositionPackage> decompositionPackages,
-                                   SupertagDictionary supertagDictionary, String zipFileName, String outPath) throws IOException {
+                                  List<DecompositionPackage> decompositionPackages,
+                                  SupertagDictionary supertagDictionary, String zipFileName, String outPath) throws IOException {
         //create zip file
         System.err.println("Writing zip file "+Paths.get(outPath, zipFileName+ ".zip"));
         ZipOutputStream zipFile = new ZipOutputStream(new FileOutputStream(Paths.get(outPath, zipFileName+ ".zip").toFile()));
