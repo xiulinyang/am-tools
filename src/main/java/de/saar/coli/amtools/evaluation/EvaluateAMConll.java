@@ -143,6 +143,7 @@ public class EvaluateAMConll {
 
             MRInstance mrInst;
             try {
+
                 SGraph evaluatedGraph = evaluateToAlignedGraph(inputSentence);
                 List<Alignment> alignments = AlignedAMDependencyTree.extractAlignments(evaluatedGraph);
                 mrInst = encodeAsMRInstance(inputSentence, evaluatedGraph, alignments);

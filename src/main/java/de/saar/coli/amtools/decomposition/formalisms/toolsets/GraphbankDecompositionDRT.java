@@ -39,7 +39,7 @@ public class GraphbankDecompositionDRT extends GraphbankDecompositionToolset {
         List<String> parentDirectories = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
         List<String> combinedDirectories = new ArrayList<>();
         for (String parentDirectory : parentDirectories) {
-            String combinedDirectory = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/data/pmb-4.0.0/data/en/"+ parentDirectory + "/" + stemDirectory;
+            String combinedDirectory = "ud-boxer/data/pmb-4.0.0/data/en/"+ parentDirectory + "/" + stemDirectory;
             combinedDirectories.add(combinedDirectory);
         }
 

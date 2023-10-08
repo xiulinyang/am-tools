@@ -47,10 +47,10 @@ import static de.saar.coli.amtools.decomposition.formalisms.toolsets.GraphbankDe
 public class SourceAutomataCLI {
 
     @Parameter(names = {"--trainingCorpus", "-t"}, description = "Path to the input training corpus (*.sdp file)", required = false)
-    private String trainingCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/data_split/scopeless5/en_train.txt";
+    private String trainingCorpusPath = "ud-boxer/ud_boxer/data_split/scopeless5/en_train.txt";
 
     @Parameter(names = {"--devCorpus", "-d"}, description = "Path to the input dev corpus (*.sdp file)", required = false)
-    private String devCorpusPath = "/Users/shirleenyoung/Desktop/TODO/MA_Thesis/ud-boxer/ud_boxer/data_split/scopeless5/en_dev.txt";
+    private String devCorpusPath = "ud-boxer/ud_boxer/data_split/scopeless5/en_dev.txt";
 
     @Parameter(names = {"--outPath", "-o"}, description = "Path to output folder where zip files (or in legacy versions amconll and supertag dictionary files) are created")//, required = true)
     private String outPath = "data/output/";
@@ -531,6 +531,7 @@ public class SourceAutomataCLI {
             if (i % 500 == 0) {
                 System.err.println(i);
             }
+            try {
             SourceAssignmentAutomaton decomp = originalDecompositionAutomata.get(i);
             DecompositionPackage decompositionPackage = decompositionPackages.get(i);
             AmConllSentence amConllSentence = baseAmConllSentences.get(i);
@@ -541,7 +542,7 @@ public class SourceAutomataCLI {
             Map<Rule, Pair<Integer, String>> rule2supertag = new HashMap<>();
             Map<Rule, Pair<Pair<Integer, Integer>, String>> rule2edge = new HashMap<>();
 
-            try {
+
 
 
                 decomp.processAllRulesBottomUp(rule -> {
